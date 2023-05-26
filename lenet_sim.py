@@ -57,11 +57,3 @@ def simulate_lenet_requests(simulator, num_reqs, interarrival_space):
 
     
     return sum(job_times) / len(job_times)
-
-
-
-num_reqs = 100 # number of back-to-back lenet computations
-for interarrival_space in range(200, 2000, 100):
-    simulator = Simulator()
-    average_job_time = simulate_lenet_requests(simulator, 100, interarrival_space)
-    print(f'Average job time for interarrival space of {interarrival_space}: {average_job_time}')
