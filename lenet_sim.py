@@ -9,13 +9,10 @@ class Simulator():
         self.next_core = 0
 
     def simulate_lenet(self, t_offset=0):
-        # print("\nnew lenet with offset:", t_offset)
         job_times = []
 
         for layer in LENET_LAYERS:
             input_size, vvps = layer
-            # print("vvps:", vvps)
-            # print("input size:", input_size)
             earliest_start = math.inf
             latest_end = 0
 
@@ -28,11 +25,11 @@ class Simulator():
                 self.next_core += 1
             
             job_time = latest_end - earliest_start
-            # print("job time:", job_time)
             job_times.append(job_time)
             t_offset = latest_end # next layer must begin after this layer is complete
         
-        return job_times
+        total_time = sum(job_times)
+        return total_time
 
 class Core():
     def __init__(self):
@@ -49,11 +46,10 @@ class Core():
         return start_time, end_time
     
 def simulate_lenet_requests(simulator, num_reqs, interarrival_space):
-    job_times = []
+    req_times = []
 
     for req_id in range(num_reqs):
-        job_times_for_req = simulator.simulate_lenet(req_id * interarrival_space)
-        job_times.extend(job_times_for_req)
-
+        req_times_for_req = simulator.simulate_lenet(req_id * interarrival_space)
+        req_times.append(req_times_for_req)
     
-    return sum(job_times) / len(job_times)
+    return sum(req_times) / len(req_times)

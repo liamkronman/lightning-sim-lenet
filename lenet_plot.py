@@ -9,6 +9,6 @@ for interarrival_space in range(200, 2000, 100):
     plt.plot(interarrival_space, average_job_time, "-o")
 
 plt.xlabel('Time between Request arrivals (in ts)')
-plt.ylabel('Average Job completion (in ts)')
+plt.ylabel('Average Request completion (in ts)')
 plt.title('LeNet-300-100 on 300 cores over 100 requests (perfect conditions)')
-plt.savefig("sim_plots/avg_job_completion_vs_interarrival_perfect_conditions.png")
+plt.savefig("sim_plots/avg_req_completion_vs_interarrival_perfect_conditions.png")
