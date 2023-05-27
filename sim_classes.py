@@ -34,7 +34,7 @@ class Request(Event):
         Returns
         -------
         job: Jobs corresponding to first layer of request
-        dependent_layers: list of tuples that outline the input size and number of VVPs for each layer after this one
+        dependent_layers: list of tuples that outline the input size and number of VVPs for each layer after this one (in same DNN)
         '''
         input_size, vvps = self.layers[0]
         job = Job(curr_time, self.req_id, vvps, input_size)
@@ -70,6 +70,9 @@ class Job(Event):
 
 
 class Task():
+    '''
+    Represents VVP in a layer of DNN
+    '''
     def __init__(self, req_id, size):
         self.req_id = req_id
         self.size = size
