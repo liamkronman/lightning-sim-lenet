@@ -12,7 +12,7 @@ for interarrival_space in tqdm(range(0, 2000, 100)):
 
 plt.xlabel('Time between Request arrivals (in ts)')
 plt.ylabel('Average Request completion (in ts)')
-plt.title('LeNet-300-100 on 300 cores over 100 requests (perfect conditions)')
-out_filepath = "sim_plots/avg_req_completion_vs_interarrival_perfect_conditions.png"
+plt.title('LeNet-300-100 on 300 cores over 100 requests (344ts datapath latency)')
+out_filepath = "sim_plots/avg_req_completion_vs_interarrival_344_dpl.png"
 plt.savefig(out_filepath)
 print(f"Output accessible in {out_filepath}")

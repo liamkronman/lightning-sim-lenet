@@ -5,6 +5,7 @@ from typing import List, NoReturn, Callable
 
 NUM_CORES = 300
 LENET_LAYERS = [(784, 300), (300, 100), (100, 10)]
+DATAPATH_LATENCY = 344 # latency (in ts) before every request
 
 class Simulator():
     def __init__(self):
@@ -76,7 +77,7 @@ class Simulator():
                 event = self.queue.popleft()
                 if isinstance(event, Request):
                     self.req_start_times[event.req_id] = self.time
-                    first_job, dependent_layers = event.gen_job_dag(self.time) # first layer of DAG representing that DNN and subsequent layers
+                    first_job, dependent_layers = event.gen_job_dag(self.time + DATAPATH_LATENCY) # first layer of DAG representing that DNN and subsequent layers
                     self.merge_into_queue([first_job])
                     self.reqs_in_progress.add(event.req_id)
                     self.req_layer_progress[event.req_id] = [first_job.vvps, dependent_layers]
