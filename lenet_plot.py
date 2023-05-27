@@ -1,12 +1,13 @@
 from lenet_sim import Simulator, schedule_lenet_requests
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 num_reqs = 100 # number of back-to-back lenet computations
-for interarrival_space in range(500, 2000, 100):
+for interarrival_space in tqdm(range(200, 2000, 100)):
     simulator = Simulator()
     schedule_lenet_requests(simulator, 100, interarrival_space)
     average_job_time = simulator.simulate()
-    print(f'Average job time for interarrival space of {interarrival_space}: {average_job_time}')
+    # print(f'Average job time for interarrival space of {interarrival_space}: {average_job_time}')
     plt.plot(interarrival_space, average_job_time, "-o")
 
 plt.xlabel('Time between Request arrivals (in ts)')
