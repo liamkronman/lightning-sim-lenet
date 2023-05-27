@@ -61,6 +61,7 @@ class Simulator():
                 # print("Request completed in:", total_req_time)
                 self.req_times.append(total_req_time)
                 self.reqs_in_progress.remove(req_id)
+                # might want to remove from self.req_layer_progress[req_id]
                 # print(self.queue)
                 # print(self.reqs_in_progress)
         self.req_layer_progress[req_id][0] -= 1
@@ -132,6 +133,7 @@ class Core():
             self.current_req_id = new_vvp.req_id
 
         if self.time == self.current_task_end_time:
+            update_req_layer_progress(self.current_req_id) # signal that the task has been complete
             if self.wait_queue:
                 # load off queue
                 # print(self.wait_queue)
@@ -140,8 +142,7 @@ class Core():
                 self.current_req_id = new_vvp.req_id
             else:
                 self.current_task_end_time = None
-
-            update_req_layer_progress(self.current_req_id)
+                self.current_req_id = None
 
 
 def schedule_lenet_requests(simulator, num_reqs, interarrival_space):
@@ -151,8 +152,8 @@ def schedule_lenet_requests(simulator, num_reqs, interarrival_space):
 
 if __name__=="__main__":
     simulator = Simulator()
-    # schedule_lenet_requests(simulator, 1, 1200)
+    schedule_lenet_requests(simulator, 100, 1100)
 
     # simulation of single lenet request
-    simulator.schedule_lenet(LENET_LAYERS,0)
+    # simulator.schedule_lenet(LENET_LAYERS,0)
     print(simulator.simulate())
