@@ -1,5 +1,7 @@
+from typing import List, NoReturn, Tuple
+
 class Event():
-    def __init__(self, start_t, req_id):
+    def __init__(self, start_t:int, req_id:int) -> NoReturn:
         '''
         Parameters
         ----------
@@ -10,11 +12,47 @@ class Event():
         self.req_id = req_id
 
 
+class Task():
+    '''
+    Represents VVP in a layer of DNN
+    '''
+    def __init__(self, req_id:int, size:int) -> NoReturn:
+        self.req_id = req_id
+        self.size = size
+
+
+class Job(Event):
+    '''
+    Represents a layer in DNN
+    '''
+    def __init__(self, start_t:int, req_id:int, vvps:int, input_size:int) -> NoReturn:
+        '''
+        Parameters
+        ----------
+        start_t: see Event spec
+        req_id: see Event spec
+        vvps: number of VVPs in layer
+        input_size: duration of each VVP (in ts)
+        '''
+        super().__init__(start_t, req_id)
+        self.vvps = vvps
+        self.input_size = input_size
+
+    def gen_tasks(self) -> List[Task]:
+        '''
+        Returns
+        -------
+        tasks: list of Tasks for layer in DNN
+        '''
+        tasks = [Task(self.req_id, self.input_size) for _ in range(self.vvps)]
+        return tasks
+
+
 class Request(Event):
     '''
     Represents DNN with only fully-connected layers
     '''
-    def __init__(self, start_t, layers, req_id):
+    def __init__(self, start_t:int, layers:List[List[int]], req_id:int) -> NoReturn:
         '''
         Parameters
         ----------
@@ -25,7 +63,7 @@ class Request(Event):
         super().__init__(start_t, req_id)
         self.layers = layers.copy() # to prevent aliasing
 
-    def gen_job_dag(self, curr_time):
+    def gen_job_dag(self, curr_time:int) -> Tuple[Job, List[List[int]]]:
         '''
         Parameters
         ----------
@@ -40,39 +78,3 @@ class Request(Event):
         job = Job(curr_time, self.req_id, vvps, input_size)
         dependent_layers = self.layers[1:].copy() # to prevent aliasing
         return job, dependent_layers
-
-
-class Job(Event):
-    '''
-    Represents a layer in DNN
-    '''
-    def __init__(self, start_t, req_id, vvps, input_size):
-        '''
-        Parameters
-        ----------
-        start_t: see Event spec
-        req_id: see Event spec
-        vvps: number of VVPs in layer
-        input_size: duration of each VVP (in ts)
-        '''
-        super().__init__(start_t, req_id)
-        self.vvps = vvps
-        self.input_size = input_size
-
-    def gen_tasks(self):
-        '''
-        Returns
-        -------
-        tasks: list of Tasks for layer in DNN
-        '''
-        tasks = [Task(self.req_id, self.input_size) for _ in range(self.vvps)]
-        return tasks
-
-
-class Task():
-    '''
-    Represents VVP in a layer of DNN
-    '''
-    def __init__(self, req_id, size):
-        self.req_id = req_id
-        self.size = size

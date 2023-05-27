@@ -1,6 +1,7 @@
-from sim_classes import Request, Job
+from sim_classes import Request, Job, Event, Task
 from collections import deque
 from heapq import merge
+from typing import List, NoReturn, Callable
 
 NUM_CORES = 300
 LENET_LAYERS = [(784, 300), (300, 100), (100, 10)]
@@ -18,7 +19,7 @@ class Simulator():
         self.req_layer_progress = {}                        # maps req_ids to [num_vvps_left, dependent_layers] for requests in progress
         self.req_times = []                                 # completion times of finished requests (at current time)
 
-    def schedule_lenet(self, layers, start_t=0):
+    def schedule_lenet(self, layers:List[List[int]], start_t:int) -> NoReturn:
         '''
         Parameters
         ----------
@@ -28,7 +29,7 @@ class Simulator():
         self.merge_into_queue([Request(start_t, layers, self.req_id)])
         self.req_id += 1
 
-    def merge_into_queue(self, events):
+    def merge_into_queue(self, events:List[Event]) -> NoReturn:
         '''
         Parameters
         ----------
@@ -36,7 +37,7 @@ class Simulator():
         '''
         self.queue = deque(merge(events, self.queue, key=lambda event:event.start_t)) # added left-handedly to prioritize recents
     
-    def update_req_layer_progress(self, req_id):
+    def update_req_layer_progress(self, req_id:int) -> NoReturn:
         '''
         Decrements the number of VVPs left to complete a layer in DNN and schedules next layer, if exists,
         otherwise logs total time the request took to process.
@@ -62,7 +63,7 @@ class Simulator():
                 # might want to remove from self.req_layer_progress[req_id]
         self.req_layer_progress[req_id][0] -= 1
 
-    def simulate(self):
+    def simulate(self) -> float:
         '''
         Performs simulation based on scheduled requests
 
@@ -94,13 +95,13 @@ class Simulator():
 
 
 class Core():
-    def __init__(self, core_id):
+    def __init__(self, core_id:int) -> NoReturn:
         self.core_id = core_id              # unique identifier for core
         self.wait_queue = deque([])         # holds all tasks scheduled to core that haven't started being processed
         self.current_task_end_time = None   # end time of task currently being processed
         self.current_req_id = None          # req_id of task currently being processed
     
-    def schedule_vvp(self, task):
+    def schedule_vvp(self, task:Task) -> NoReturn:
         '''
         Adds a task to the wait_queue of core
 
@@ -110,7 +111,7 @@ class Core():
         '''
         self.wait_queue.append(task)
 
-    def load_new_task(self, sim_time):
+    def load_new_task(self, sim_time:int) -> NoReturn:
         '''
         Loads new task of queue
 
@@ -122,7 +123,7 @@ class Core():
         self.current_task_end_time = new_vvp.size + sim_time
         self.current_req_id = new_vvp.req_id
 
-    def time_step(self, sim_time, update_req_layer_progress):
+    def time_step(self, sim_time:int, update_req_layer_progress:Callable[[int], None]) -> NoReturn:
         '''
         Simulates time step for core
 
@@ -144,7 +145,7 @@ class Core():
                 self.current_req_id = None
 
 
-def schedule_lenet_requests(simulator, num_reqs, interarrival_space):
+def schedule_lenet_requests(simulator, num_reqs:int, interarrival_space:int) -> NoReturn:
     '''
     Parameters
     ----------
@@ -162,4 +163,4 @@ if __name__=="__main__":
 
     # simulation of single lenet request
     # simulator.schedule_lenet(LENET_LAYERS,0)
-    print(simulator.simulate())
+    print("Average job completion time (in ts):", simulator.simulate())

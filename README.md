@@ -8,4 +8,4 @@ Event-driven simulation occurs in two phases:
 2. Simulating the schedule. `Simulator.simulate()` will act out the requests at their specified times and return their average completion time.
 
 ## Usage
-Run ```python3 lenet_plot.py``` to generate plot of average request completion times over different interarrivals lengths.
+Run ```python3 lenet_plot.py``` to generate plot of average request completion times over different interarrival lengths.
