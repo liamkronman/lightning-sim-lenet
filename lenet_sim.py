@@ -97,10 +97,10 @@ class Simulator():
 
 class Core():
     def __init__(self, core_id:int) -> NoReturn:
-        self.core_id = core_id                          # unique identifier for core
-        self.wait_queue = deque([])                     # holds all tasks scheduled to core that haven't started being processed
-        self.current_task_end_time = None               # end time of task currently being processed
-        self.current_req_id = None                      # req_id of task currently being processed
+        self.core_id = core_id                              # unique identifier for core
+        self.wait_queue = deque([])                         # holds all tasks scheduled to core that haven't started being processed
+        self.current_task_end_time = None                   # end time of task currently being processed
+        self.current_req_id = None                          # req_id of task currently being processed
     
     def schedule_vvp(self, task:Task) -> NoReturn:
         '''
