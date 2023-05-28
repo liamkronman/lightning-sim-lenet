@@ -118,7 +118,7 @@ class Core():
 
     def load_new_task(self, sim_time:int) -> None:
         '''
-        Loads new task of queue
+        Loads new task off queue
 
         Parameters
         ----------
@@ -140,7 +140,7 @@ class Core():
         if not self.current_task_end_time and self.wait_queue: # core is unutilized
             self.load_new_task(sim_time)
 
-        if sim_time == self.current_task_end_time and self.current_req_id:
+        if sim_time == self.current_task_end_time and self.current_req_id != None:
             update_req_layer_progress(self.current_req_id) # signal that the task has been complete
             if self.wait_queue:
                 self.load_new_task(sim_time)
@@ -164,8 +164,8 @@ def schedule_lenet_requests(simulator, num_reqs:int, interarrival_space:int) -> 
 
 if __name__=="__main__":
     simulator = Simulator()
-    schedule_lenet_requests(simulator, 100, 1200)
+    # schedule_lenet_requests(simulator, 100, 1200)
 
     # simulation of single lenet request
-    # simulator.schedule_lenet(LENET_LAYERS,0)
+    simulator.schedule_lenet(LENET_LAYERS,0)
     print("Average job completion time (in ts):", simulator.simulate())
