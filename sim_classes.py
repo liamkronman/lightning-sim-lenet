@@ -1,7 +1,7 @@
-from typing import List, NoReturn, Tuple
+from typing import List, Tuple
 
 class Event():
-    def __init__(self, start_t:int, req_id:int) -> NoReturn:
+    def __init__(self, start_t:int, req_id:int) -> None:
         '''
         Parameters
         ----------
@@ -16,7 +16,7 @@ class Task():
     '''
     Represents VVP in a layer of DNN
     '''
-    def __init__(self, req_id:int, size:int) -> NoReturn:
+    def __init__(self, req_id:int, size:int) -> None:
         self.req_id = req_id
         self.size = size
 
@@ -25,7 +25,7 @@ class Job(Event):
     '''
     Represents a layer in DNN
     '''
-    def __init__(self, start_t:int, req_id:int, vvps:int, input_size:int) -> NoReturn:
+    def __init__(self, start_t:int, req_id:int, vvps:int, input_size:int) -> None:
         '''
         Parameters
         ----------
@@ -35,8 +35,8 @@ class Job(Event):
         input_size: duration of each VVP (in ts)
         '''
         super().__init__(start_t, req_id)
-        self.vvps = vvps
-        self.input_size = input_size
+        self.vvps:int = vvps
+        self.input_size:int = input_size
 
     def gen_tasks(self) -> List[Task]:
         '''
@@ -52,7 +52,7 @@ class Request(Event):
     '''
     Represents DNN with only fully-connected layers
     '''
-    def __init__(self, start_t:int, layers:List[List[int]], req_id:int) -> NoReturn:
+    def __init__(self, start_t:int, layers:List[List[int]], req_id:int) -> None:
         '''
         Parameters
         ----------
@@ -71,10 +71,24 @@ class Request(Event):
 
         Returns
         -------
-        job: Jobs corresponding to first layer of request
+        job: Job corresponding to first layer of request
         dependent_layers: list of tuples that outline the input size and number of VVPs for each layer after this one (in same DNN)
         '''
         input_size, vvps = self.layers[0]
         job = Job(curr_time, self.req_id, vvps, input_size)
         dependent_layers = self.layers[1:].copy() # to prevent aliasing
         return job, dependent_layers
+    
+class LayerProgress():
+    '''
+    Represents state of layer for DNN
+    '''
+    def __init__(self, num_vvps_left:int, dependent_layers: List[List[int]]) -> None:
+        '''
+        Parameters
+        ----------
+        num_vvps_left: number of VVPs left to compute in current layer (non-negative integer)
+        dependent_layers: list of tuples representing dimensions of subsequent layers, if exists
+        '''
+        self.num_vvps_left = num_vvps_left
+        self.dependent_layers = dependent_layers

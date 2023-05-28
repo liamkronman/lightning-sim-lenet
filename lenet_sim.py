@@ -1,26 +1,26 @@
-from sim_classes import Request, Job, Event, Task
+from sim_classes import Request, Job, Event, Task, LayerProgress
 from collections import deque
 from heapq import merge
-from typing import List, NoReturn, Callable
+from typing import List, Dict, Set, NoReturn, Callable
 
 NUM_CORES = 300
 LENET_LAYERS = [(784, 300), (300, 100), (100, 10)]
 DATAPATH_LATENCY = 344 # latency (in ts) before every request
 
 class Simulator():
-    def __init__(self):
-        self.cores = [Core(i) for i in range(NUM_CORES)]    # cores that the simulator will run on
-        self.next_core = 0                                  # core that follows the last scheduled core (round-robin style)
-        self.queue = deque([])                              # holds all scheduled events
-        self.time = 0                                       # simulator's internal time
-        self.req_id = 0                                     # id that will be assigned to the next Request
-        self.req_start_times = {}                           # maps req_ids to their request's scheduled start times
-        self.req_end_times = {}                             # maps req_ids to latest end times of any VVPs associated with that Request
-        self.reqs_in_progress = set()                       # ids of all requests being processed at current time
-        self.req_layer_progress = {}                        # maps req_ids to [num_vvps_left, dependent_layers] for requests in progress
-        self.req_times = []                                 # completion times of finished requests (at current time)
+    def __init__(self) -> None:
+        self.cores = [Core(i) for i in range(NUM_CORES)]        # cores that the simulator will run on
+        self.next_core = 0                                      # core that follows the last scheduled core (round-robin style)
+        self.queue:deque = deque([])                            # holds all scheduled events
+        self.time = 0                                           # simulator's internal time
+        self.req_id = 0                                         # id that will be assigned to the next Request
+        self.req_start_times:Dict[int,int] = {}                 # maps req_ids to their request's scheduled start times
+        self.req_end_times:Dict[int,int] = {}                   # maps req_ids to latest end times of any VVPs associated with that Request
+        self.reqs_in_progress:Set[int] = set()                  # ids of all requests being processed at current time
+        self.req_layer_progress:Dict[int,LayerProgress] = {}    # maps req_ids to LayerProgress(num_vvps_left, dependent_layers) for requests in progress
+        self.req_times:List[int] = []                           # completion times of finished requests (at current time)
 
-    def schedule_lenet(self, layers:List[List[int]], start_t:int) -> NoReturn:
+    def schedule_lenet(self, layers:List[List[int]], start_t:int) -> None:
         '''
         Parameters
         ----------
@@ -30,7 +30,7 @@ class Simulator():
         self.merge_into_queue([Request(start_t, layers, self.req_id)])
         self.req_id += 1
 
-    def merge_into_queue(self, events:List[Event]) -> NoReturn:
+    def merge_into_queue(self, events:List[Event]) -> None:
         '''
         Parameters
         ----------
@@ -38,7 +38,7 @@ class Simulator():
         '''
         self.queue = deque(merge(events, self.queue, key=lambda event:event.start_t)) # added left-handedly to prioritize recents
     
-    def update_req_layer_progress(self, req_id:int) -> NoReturn:
+    def update_req_layer_progress(self, req_id:int) -> None:
         '''
         Decrements the number of VVPs left to complete a layer in DNN and schedules next layer, if exists,
         otherwise logs total time the request took to process.
@@ -47,22 +47,23 @@ class Simulator():
         ----------
         req_id: id of the request whose layer we just finished a computation on
         '''
-        num_vvps_left, dependent_layers = self.req_layer_progress[req_id]
+        layer_progress = self.req_layer_progress[req_id]
+        num_vvps_left, dependent_layers = layer_progress.num_vvps_left, layer_progress.dependent_layers
         if req_id not in self.req_end_times or self.time > self.req_end_times[req_id]:
-            self.req_end_times[req_id] = self.time # setting endtime to latest endtime of a VVP
+            self.req_end_times[req_id] = self.time # setting endtime of request to latest endtime of a VVP
         if num_vvps_left == 1:
             if dependent_layers: # when there are still children layers
                 input_size, vvps = dependent_layers[0]
                 next_job = Job(self.time, req_id, vvps, input_size)
                 self.merge_into_queue([next_job])
-                self.req_layer_progress[req_id] = [vvps, dependent_layers[1:].copy()] # to prevent aliasing
+                self.req_layer_progress[req_id] = LayerProgress(vvps, dependent_layers[1:].copy()) # to prevent aliasing
                 self.time -= 1 # to keep it at same time on next cycle (so we don't skip the job we just scheduled)
             else: # request done
                 total_req_time = max(self.time, self.req_end_times[req_id]) - self.req_start_times[req_id]
                 self.req_times.append(total_req_time)
                 self.reqs_in_progress.remove(req_id)
                 # might want to remove from self.req_layer_progress[req_id]
-        self.req_layer_progress[req_id][0] -= 1
+        self.req_layer_progress[req_id].num_vvps_left -= 1
 
     def simulate(self) -> float:
         '''
@@ -80,7 +81,7 @@ class Simulator():
                     first_job, dependent_layers = event.gen_job_dag(self.time + DATAPATH_LATENCY) # first layer of DAG representing that DNN and subsequent layers
                     self.merge_into_queue([first_job])
                     self.reqs_in_progress.add(event.req_id)
-                    self.req_layer_progress[event.req_id] = [first_job.vvps, dependent_layers]
+                    self.req_layer_progress[event.req_id] = LayerProgress(first_job.vvps, dependent_layers)
                 elif isinstance(event, Job):
                     tasks = event.gen_tasks()
                     for task in tasks:
@@ -96,13 +97,13 @@ class Simulator():
 
 
 class Core():
-    def __init__(self, core_id:int) -> NoReturn:
-        self.core_id = core_id                              # unique identifier for core
-        self.wait_queue = deque([])                         # holds all tasks scheduled to core that haven't started being processed
-        self.current_task_end_time = None                   # end time of task currently being processed
-        self.current_req_id = None                          # req_id of task currently being processed
+    def __init__(self, core_id:int) -> None:
+        self.core_id = core_id                                  # unique identifier for core
+        self.wait_queue:deque = deque([])                       # holds all tasks scheduled to core that haven't started being processed
+        self.current_task_end_time = None                       # end time of task currently being processed
+        self.current_req_id = None                              # req_id of task currently being processed
     
-    def schedule_vvp(self, task:Task) -> NoReturn:
+    def schedule_vvp(self, task:Task) -> None:
         '''
         Adds a task to the wait_queue of core
 
@@ -112,7 +113,7 @@ class Core():
         '''
         self.wait_queue.append(task)
 
-    def load_new_task(self, sim_time:int) -> NoReturn:
+    def load_new_task(self, sim_time:int) -> None:
         '''
         Loads new task of queue
 
@@ -124,7 +125,7 @@ class Core():
         self.current_task_end_time = new_vvp.size + sim_time
         self.current_req_id = new_vvp.req_id
 
-    def time_step(self, sim_time:int, update_req_layer_progress:Callable[[int], None]) -> NoReturn:
+    def time_step(self, sim_time:int, update_req_layer_progress:Callable[[int], None]) -> None:
         '''
         Simulates time step for core
 
@@ -136,7 +137,7 @@ class Core():
         if not self.current_task_end_time and self.wait_queue: # core is unutilized
             self.load_new_task(sim_time)
 
-        if sim_time == self.current_task_end_time:
+        if sim_time == self.current_task_end_time and self.current_req_id:
             update_req_layer_progress(self.current_req_id) # signal that the task has been complete
             if self.wait_queue:
                 self.load_new_task(sim_time)
@@ -146,7 +147,7 @@ class Core():
                 self.current_req_id = None
 
 
-def schedule_lenet_requests(simulator, num_reqs:int, interarrival_space:int) -> NoReturn:
+def schedule_lenet_requests(simulator, num_reqs:int, interarrival_space:int) -> None:
     '''
     Parameters
     ----------
