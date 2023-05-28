@@ -1,16 +1,16 @@
 from sim_classes import Request, Job, Event, Task, LayerProgress
 from collections import deque
 from heapq import merge
-from typing import List, Dict, Set, Callable
+from typing import List, Dict, Set, Callable, Tuple
 import math
 
 NUM_CORES = 300
 LENET_LAYERS = [(784, 300), (300, 100), (100, 10)]
-DATAPATH_LATENCY = 344 # latency (in ts) before every request
-OVERHEAD_FACTOR = 0.1 # latency factor between layers of request (proportional to input size of next layer)
 
 class Simulator():
-    def __init__(self) -> None:
+    def __init__(self, dpl=0, overhead_factor=0.) -> None:
+        self.dpl = dpl                                          # datapath latency (in ts) before every request
+        self.overhead_factor = overhead_factor                  # latency factor between layers of request (proportional to input size of next layer)
         self.cores = [Core(i) for i in range(NUM_CORES)]        # cores that the simulator will run on
         self.next_core = 0                                      # core that follows the last scheduled core (round-robin style)
         self.queue:deque = deque([])                            # holds all scheduled events
@@ -22,7 +22,7 @@ class Simulator():
         self.req_layer_progress:Dict[int,LayerProgress] = {}    # maps req_ids to LayerProgress(num_vvps_left, dependent_layers) for requests in progress
         self.req_times:List[int] = []                           # completion times of finished requests (at current time)
 
-    def schedule_lenet(self, layers:List[List[int]], start_t:int) -> None:
+    def schedule_lenet(self, layers:List[Tuple[int, int]], start_t:int) -> None:
         '''
         Parameters
         ----------
@@ -56,7 +56,7 @@ class Simulator():
         if num_vvps_left == 1:
             if dependent_layers: # when there are still children layers
                 input_size, vvps = dependent_layers[0] # for next layer
-                overhead_time = math.ceil(OVERHEAD_FACTOR * input_size)
+                overhead_time = math.ceil(self.overhead_factor * input_size)
                 next_job = Job(self.time + overhead_time, req_id, vvps, input_size)
                 self.merge_into_queue([next_job])
                 self.req_layer_progress[req_id] = LayerProgress(vvps, dependent_layers[1:]) # to prevent aliasing
@@ -81,7 +81,7 @@ class Simulator():
                 event = self.queue.popleft()
                 if isinstance(event, Request):
                     self.req_start_times[event.req_id] = self.time
-                    first_job, dependent_layers = event.gen_job_dag(self.time + DATAPATH_LATENCY) # first layer of DAG representing that DNN and subsequent layers
+                    first_job, dependent_layers = event.gen_job_dag(self.time + self.dpl) # first layer of DAG representing that DNN and subsequent layers
                     self.merge_into_queue([first_job])
                     self.reqs_in_progress.add(event.req_id)
                     self.req_layer_progress[event.req_id] = LayerProgress(first_job.vvps, dependent_layers)
@@ -140,7 +140,7 @@ class Core():
         if not self.current_task_end_time and self.wait_queue: # core is unutilized
             self.load_new_task(sim_time)
 
-        if sim_time == self.current_task_end_time and self.current_req_id != None:
+        if sim_time == self.current_task_end_time and isinstance(self.current_req_id, int):
             update_req_layer_progress(self.current_req_id) # signal that the task has been complete
             if self.wait_queue:
                 self.load_new_task(sim_time)
@@ -150,13 +150,15 @@ class Core():
                 self.current_req_id = None
 
 
-def schedule_lenet_requests(simulator, num_reqs:int, interarrival_space:int) -> None:
+def schedule_lenet_requests(simulator, num_reqs:int, interarrival_space:int, dpl=0, overhead_factor=0.) -> None:
     '''
     Parameters
     ----------
     simulator: Simulator object we are scheduling requests onto
     num_reqs: number of requests to schedule
     interarrival_space: length of time (in ts) to stagger each request
+    dpl: datapath latency for all LeNet requests (in ts)
+    overhead_factor: latency factor before all layers of LeNet requests
     '''
     for req_id in range(num_reqs):
         simulator.schedule_lenet(LENET_LAYERS, req_id * interarrival_space)

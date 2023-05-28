@@ -1,5 +1,4 @@
 from typing import List, Tuple
-from copy import deepcopy
 
 class Event():
     def __init__(self, start_t:int, req_id:int) -> None:
@@ -53,7 +52,7 @@ class Request(Event):
     '''
     Represents DNN with only fully-connected layers
     '''
-    def __init__(self, start_t:int, layers:List[List[int]], req_id:int) -> None:
+    def __init__(self, start_t:int, layers:List[Tuple[int,int]], req_id:int) -> None:
         '''
         Parameters
         ----------
@@ -62,9 +61,9 @@ class Request(Event):
         req_id: see Event spec
         '''
         super().__init__(start_t, req_id)
-        self.layers = deepcopy(layers) # copied to prevent aliasing
+        self.layers = layers.copy() # copied to prevent aliasing
 
-    def gen_job_dag(self, curr_time:int) -> Tuple[Job, List[List[int]]]:
+    def gen_job_dag(self, curr_time:int) -> Tuple[Job, List[Tuple[int,int]]]:
         '''
         Parameters
         ----------
@@ -77,7 +76,7 @@ class Request(Event):
         '''
         input_size, vvps = self.layers[0]
         job = Job(curr_time, self.req_id, vvps, input_size)
-        dependent_layers = deepcopy(self.layers[1:]) # copied to prevent aliasing
+        dependent_layers = self.layers[1:].copy() # copied to prevent aliasing
         return job, dependent_layers
     
 
@@ -85,7 +84,7 @@ class LayerProgress():
     '''
     Represents state of layer for DNN
     '''
-    def __init__(self, num_vvps_left:int, dependent_layers: List[List[int]]) -> None:
+    def __init__(self, num_vvps_left:int, dependent_layers: List[Tuple[int,int]]) -> None:
         '''
         Parameters
         ----------
@@ -93,4 +92,4 @@ class LayerProgress():
         dependent_layers: list of tuples representing dimensions of subsequent layers, if exists
         '''
         self.num_vvps_left = num_vvps_left
-        self.dependent_layers = deepcopy(dependent_layers) # copied to prevent aliasing
+        self.dependent_layers = dependent_layers.copy() # copied to prevent aliasing
