@@ -62,7 +62,7 @@ class Request(Event):
         req_id: see Event spec
         '''
         super().__init__(start_t, req_id)
-        self.layers = layers.copy() # to prevent aliasing
+        self.layers = deepcopy(layers) # copied to prevent aliasing
 
     def gen_job_dag(self, curr_time:int) -> Tuple[Job, List[List[int]]]:
         '''
