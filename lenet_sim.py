@@ -7,7 +7,7 @@ import math
 NUM_CORES = 300
 LENET_LAYERS = [(784, 300), (300, 100), (100, 10)]
 DATAPATH_LATENCY = 344 # latency (in ts) before every request
-OVERHEAD_FACTOR = 0.1 # latency factor between layers of request (proportional to input size into next layer)
+OVERHEAD_FACTOR = 0.1 # latency factor between layers of request (proportional to input size of next layer)
 
 class Simulator():
     def __init__(self) -> None:
@@ -59,7 +59,7 @@ class Simulator():
                 overhead_time = math.ceil(OVERHEAD_FACTOR * input_size)
                 next_job = Job(self.time + overhead_time, req_id, vvps, input_size)
                 self.merge_into_queue([next_job])
-                self.req_layer_progress[req_id] = LayerProgress(vvps, dependent_layers[1:].copy()) # to prevent aliasing
+                self.req_layer_progress[req_id] = LayerProgress(vvps, dependent_layers[1:]) # to prevent aliasing
                 self.time -= 1 # to keep it at same time on next cycle (so we don't skip the job we just scheduled)
             else: # request done
                 total_req_time = max(self.time, self.req_end_times[req_id]) - self.req_start_times[req_id]

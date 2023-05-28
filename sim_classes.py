@@ -1,4 +1,5 @@
 from typing import List, Tuple
+from copy import deepcopy
 
 class Event():
     def __init__(self, start_t:int, req_id:int) -> None:
@@ -76,10 +77,10 @@ class Request(Event):
         '''
         input_size, vvps = self.layers[0]
         job = Job(curr_time, self.req_id, vvps, input_size)
-        dependent_layers = self.layers[1:].copy() # to prevent aliasing
+        dependent_layers = deepcopy(self.layers[1:]) # copied to prevent aliasing
         return job, dependent_layers
     
-    
+
 class LayerProgress():
     '''
     Represents state of layer for DNN
@@ -92,4 +93,4 @@ class LayerProgress():
         dependent_layers: list of tuples representing dimensions of subsequent layers, if exists
         '''
         self.num_vvps_left = num_vvps_left
-        self.dependent_layers = dependent_layers
+        self.dependent_layers = deepcopy(dependent_layers) # copied to prevent aliasing
