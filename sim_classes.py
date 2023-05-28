@@ -79,6 +79,7 @@ class Request(Event):
         dependent_layers = self.layers[1:].copy() # to prevent aliasing
         return job, dependent_layers
     
+    
 class LayerProgress():
     '''
     Represents state of layer for DNN
