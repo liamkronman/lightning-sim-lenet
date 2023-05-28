@@ -21,8 +21,8 @@ def run_lenet_batch(label, dpl=0, overhead_factor=0.):
     y_axis = []
     num_reqs = 100 # number of back-to-back lenet computations
     for interarrival_space in tqdm(range(0, 2000, 50)):
-        simulator = Simulator()
-        schedule_lenet_requests(simulator, num_reqs, interarrival_space, dpl, overhead_factor)
+        simulator = Simulator(dpl, overhead_factor)
+        schedule_lenet_requests(simulator, num_reqs, interarrival_space)
         average_job_time = simulator.simulate()
         # print(f'Average job time for interarrival space of {interarrival_space}: {average_job_time}')
         x_axis.append(interarrival_space)

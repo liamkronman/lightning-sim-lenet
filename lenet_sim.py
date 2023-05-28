@@ -150,22 +150,20 @@ class Core():
                 self.current_req_id = None
 
 
-def schedule_lenet_requests(simulator, num_reqs:int, interarrival_space:int, dpl=0, overhead_factor=0.) -> None:
+def schedule_lenet_requests(simulator, num_reqs:int, interarrival_space:int) -> None:
     '''
     Parameters
     ----------
     simulator: Simulator object we are scheduling requests onto
     num_reqs: number of requests to schedule
     interarrival_space: length of time (in ts) to stagger each request
-    dpl: datapath latency for all LeNet requests (in ts)
-    overhead_factor: latency factor before all layers of LeNet requests
     '''
     for req_id in range(num_reqs):
         simulator.schedule_lenet(LENET_LAYERS, req_id * interarrival_space)
 
 
 if __name__=="__main__":
-    simulator = Simulator()
+    simulator = Simulator(dpl=344,overhead_factor=0.1)
     # schedule_lenet_requests(simulator, 100, 1200)
 
     # simulation of single lenet request
